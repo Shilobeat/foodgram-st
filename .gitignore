@@ -1,6 +1,8 @@
-node_modules/
+frontend/node_modules/
+frontend/build/
 __pycache__/
-static/*
+backend/static/
+backend/venv/
 media/*
 __init__.py
 pgdata/
