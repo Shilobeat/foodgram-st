@@ -2,3 +2,6 @@
 
 По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
 
+Запуск из infra:
+docker compose up -d
+
