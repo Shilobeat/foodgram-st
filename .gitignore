@@ -3,6 +3,6 @@ frontend/build/
 __pycache__/
 backend/static/
 backend/venv/
-media/*
-__init__.py
+venv/
+media/
 pgdata/
