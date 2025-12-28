@@ -17,7 +17,7 @@ if ALLOWED_HOSTS_ENV:
 else:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users_app.User'
 
 INSTALLED_APPS = [
     'django.contrib.admin',

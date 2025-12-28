@@ -6,7 +6,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('recipes', '0003_auto_20251224_1326'),
+        ('recipes_app', '0003_auto_20251224_1326'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

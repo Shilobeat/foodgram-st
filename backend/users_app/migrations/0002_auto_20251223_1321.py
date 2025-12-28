@@ -1,12 +1,12 @@
 from django.db import migrations, models
 
-import api.users.validators
+import users_app.validators
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0001_initial'),
+        ('users_app', '0001_initial'),
     ]
 
     operations = [
@@ -22,6 +22,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='user',
             name='username',
-            field=models.CharField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким username уже существует'}, max_length=150, unique=True, validators=[api.users.validators.validate_username], verbose_name='Имя пользователя'),
+            field=models.CharField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким username уже существует'}, max_length=150, unique=True, validators=[users_app.validators.validate_username], verbose_name='Имя пользователя'),
         ),
     ]

@@ -147,8 +147,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def generate_shopping_list_file(self, user):
         ingredients = IngredientInRecipe.objects.filter(
             recipe__shoppingcart__user=user
-        ).select_related('ingredient')
-        .values(
+        ).select_related('ingredient').values(
             'ingredient__name',
             'ingredient__measurement_unit'
         ).annotate(total_amount=Sum('amount'))

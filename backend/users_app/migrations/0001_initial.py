@@ -6,7 +6,7 @@ import django.db.models.deletion
 import django.db.models.expressions
 import django.utils.timezone
 
-import api.users.validators
+import users_app.validators
 
 
 class Migration(migrations.Migration):
@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('email', models.EmailField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким email уже зарегистрирован'}, max_length=254, unique=True, validators=[django.core.validators.EmailValidator()], verbose_name='Адрес электронной почты')),
-                ('username', models.CharField(error_messages={'unique': 'Пользователь с таким именем уже существует'}, max_length=150, unique=True, validators=[api.users.validators.validate_username], verbose_name='Имя пользователя')),
+                ('username', models.CharField(error_messages={'unique': 'Пользователь с таким именем уже существует'}, max_length=150, unique=True, validators=[users_app.validators.validate_username], verbose_name='Имя пользователя')),
                 ('first_name', models.CharField(max_length=150, verbose_name='Имя')),
                 ('last_name', models.CharField(max_length=150, verbose_name='Фамилия')),
                 ('is_subscribed', models.BooleanField(default=False, editable=False, verbose_name='Подписан ли текущий пользователь на этого')),

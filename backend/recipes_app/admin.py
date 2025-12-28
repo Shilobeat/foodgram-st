@@ -36,6 +36,10 @@ class RecipesAdmin(admin.ModelAdmin):
     list_filter = ('author', 'pub_date')
     ordering = ('-pub_date',)
     autocomplete_fields = ['author']
+    
+    def favorite_count(self, obj):
+        return obj.favorite_set.count()
+    favorite_count.short_description = 'В избранном'
 
     def display_ingredients(self, obj):
         return ', '.join([

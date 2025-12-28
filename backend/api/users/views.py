@@ -29,6 +29,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve', 'create']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+        
+    @action(detail=False, methods=['GET', 'PUT', 'PATCH'])
+    def me(self, request):
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(serializer.data)
+        serializer = self.get_serializer(
+            request.user,
+            data=request.data,
+            partial=request.method == 'PATCH'
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     @action(methods=['put', 'delete'], detail=False, url_path='me/avatar')
     def avatar(self, request):
