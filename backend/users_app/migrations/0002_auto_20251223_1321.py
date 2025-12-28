@@ -1,0 +1,27 @@
+from django.db import migrations, models
+
+import api.users.validators
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('users', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.RemoveConstraint(
+            model_name='user',
+            name='unique_email',
+        ),
+        migrations.AlterField(
+            model_name='user',
+            name='email',
+            field=models.EmailField(error_messages={'unique': 'Пользователь с таким email уже зарегистрирован'}, max_length=254, unique=True, verbose_name='Адрес электронной почты'),
+        ),
+        migrations.AlterField(
+            model_name='user',
+            name='username',
+            field=models.CharField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким username уже существует'}, max_length=150, unique=True, validators=[api.users.validators.validate_username], verbose_name='Имя пользователя'),
+        ),
+    ]
