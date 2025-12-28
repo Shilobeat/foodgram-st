@@ -1,19 +1,19 @@
-
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.fields import CreateOnlyDefault, CurrentUserDefault
 
 from api.users.serializers import Base64ImageField, UserSerializer
-from .constants import MIN_VALUE_AMOUNT_INGREDIENTS
-from .models import (
+
+from recipes_app.constants import MIN_VALUE_AMOUNT_INGREDIENTS
+from recipes_app.models import (
     Favorite,
     Ingredient,
     IngredientInRecipe,
     Recipe,
     ShoppingCart,
 )
-from .shared_serializers import ShortRecipeSerializer
-from .validators import validate_time
+from api.recipes.shared_serializers import ShortRecipeSerializer
+from recipes_app.validators import validate_time
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -23,24 +23,6 @@ class IngredientSerializer(serializers.ModelSerializer):
         model = Ingredient
         fields = ('id', 'name', 'measurement_unit')
         read_only_fields = ('id',)
-
-
-class RecipeSerializer(serializers.ModelSerializer):
-
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.favorite.filter(user=request.user).exists()
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.shoppingcarts.filter(user=request.user).exists()
-        return False
 
 
 class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
@@ -70,8 +52,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         many=True,
         source='recipe_ingredients'
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = serializers.BooleanField(read_only=True)
+    is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
 
@@ -80,18 +62,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'id', 'author', 'ingredients', 'name', 'image', 'text',
             'cooking_time', 'is_favorited', 'is_in_shopping_cart'
         )
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.favorite.filter(user=request.user).exists()
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.shoppingcart.filter(user=request.user).exists()
-        return False
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
@@ -121,21 +91,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        request = self.context.get('request')
-        method = request.method if request else None
-        require_full = method == 'POST' or (
-            method == 'PUT' and not self.partial
-        )
-        if require_full:
-            required_fields = [
-                'ingredients', 'image', 'name', 'text', 'cooking_time'
-            ]
-            missing = [field for field in required_fields if field not in data]
-            if missing:
-                raise serializers.ValidationError(
-                    {field: [f'Поле {field} обязательно для заполнения.']
-                        for field in missing}
-                )
         empty_fields = {
             'image': 'Поле image не может быть пустым.',
             'ingredients': 'Добавьте хотя бы один ингредиент.',
@@ -155,39 +110,32 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def _set_ingredients(self, recipe, ingredients_data):
+    def _update_ingredients(self, recipe, ingredients_data):
         IngredientInRecipe.objects.filter(recipe=recipe).delete()
-        IngredientInRecipe.objects.bulk_create([
-            IngredientInRecipe(
-                recipe=recipe,
-                ingredient=item['id'],
-                amount=item['amount']
-            )
-            for item in ingredients_data
-        ])
+        if ingredients_data:
+            IngredientInRecipe.objects.bulk_create([
+                IngredientInRecipe(
+                    recipe=recipe,
+                    ingredient=item['id'],
+                    amount=item['amount']
+                )
+                for item in ingredients_data
+            ])
 
     @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
-        recipe = Recipe.objects.create(**validated_data)
-        self._set_ingredients(recipe, ingredients)
+        recipe = super().create(validated_data)
+        self._update_ingredients(recipe, ingredients)
         return recipe
 
     @transaction.atomic
     def update(self, instance, validated_data):
         validated_data.pop('author', None)
         ingredients_data = validated_data.pop('ingredients', None)
-
         instance = super().update(instance, validated_data)
-
         if ingredients_data is not None:
-            IngredientInRecipe.objects.filter(recipe=instance).delete()
-            IngredientInRecipe.objects.bulk_create([
-                IngredientInRecipe(recipe=instance,
-                                   ingredient=item['id'],
-                                   amount=item['amount'])
-                for item in ingredients_data
-            ])
+            self._update_ingredients(instance, ingredients_data)
         return instance
 
     def get_image_url(self, obj):
@@ -207,6 +155,18 @@ class FavoriteSerializer(serializers.ModelSerializer):
         model = Favorite
         fields = ('user', 'recipe')
 
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if Favorite.objects.filter(
+                user=request.user,
+                recipe=data['recipe']
+            ).exists():
+                raise serializers.ValidationError(
+                    {'recipe': 'Рецепт уже в избранном.'}
+                )
+        return data
+
     def to_representation(self, instance):
         return ShortRecipeSerializer(instance.recipe).data
 
@@ -220,6 +180,18 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
         model = ShoppingCart
         fields = ('user', 'recipe')
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if ShoppingCart.objects.filter(
+                user=request.user,
+                recipe=data['recipe']
+            ).exists():
+                raise serializers.ValidationError(
+                    {'recipe': 'Рецепт уже в списке покупок.'}
+                )
+        return data
 
     def to_representation(self, instance):
         return ShortRecipeSerializer(instance.recipe).data

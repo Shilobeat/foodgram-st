@@ -1,7 +1,7 @@
-
 from django_filters import rest_framework as filters
+from rest_framework import filters as drf_filters
 
-from api.recipes.models import Recipe
+from api.recipes.models import Recipe, Ingredient
 from api.users.models import User
 
 
@@ -29,3 +29,8 @@ class RecipeFilter(filters.FilterSet):
         if value and user.is_authenticated:
             return queryset.filter(shoppingcart__user=user)
         return queryset
+
+
+class IngredientFilter(drf_filters.SearchFilter):
+
+    search_param = 'name'

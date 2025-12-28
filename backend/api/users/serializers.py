@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.core.validators import EmailValidator
 from drf_extra_fields.fields import Base64ImageField
@@ -6,8 +5,9 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from api.recipes.shared_serializers import ShortRecipeSerializer
-from .models import Subscription
-from .validators import validate_username
+
+from users_app.models import Subscription
+from users_app.validators import validate_username
 
 User = get_user_model()
 
@@ -27,7 +27,11 @@ class UserSerializer(serializers.ModelSerializer):
     )
     username = serializers.CharField(
         validators=[
-            validate_username
+            validate_username,
+            UniqueValidator(
+                queryset=User.objects.all(),
+                message='Пользователь с таким username уже существует'
+            )
         ]
     )
     avatar = Base64ImageField(required=False, allow_null=True)
@@ -57,32 +61,15 @@ class UserSerializer(serializers.ModelSerializer):
 
 class SetAvatarSerializer(serializers.ModelSerializer):
 
-    avatar = Base64ImageField(
-        required=True,
-        allow_null=True,
-        allow_empty_file=True
-    )
+    avatar = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
 
         model = User
         fields = ['avatar']
 
-    def validate_avatar(self, value):
-        if value in [None, '', b'']:
-            raise serializers.ValidationError("Аватар не может быть пустым")
-        return value
-
     def update(self, instance, validated_data):
-        avatar = validated_data.get('avatar')
-        if avatar in [None, '', b'']:
-            if instance.avatar:
-                instance.avatar.delete(save=False)
-            instance.avatar = None
-        else:
-            instance.avatar = avatar
-        instance.save()
-        return instance
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         if instance.avatar:
@@ -97,7 +84,7 @@ class SetAvatarSerializer(serializers.ModelSerializer):
 class UserWithRecipesSerializer(serializers.ModelSerializer):
 
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(read_only=True, default=0)
     avatar = serializers.ImageField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
@@ -124,17 +111,15 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
             subscriber=user, author=obj
         ).exists()
 
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
-
     def get_recipes(self, obj):
         request = self.context.get('request')
-        recipes_limit = request.query_params.get(
-            'recipes_limit'
-        ) if request else None
         recipes = obj.recipes.all()
-        if recipes_limit and recipes_limit.isdigit():
-            recipes = recipes[:int(recipes_limit)]
+        if request:
+            recipes_limit = request.query_params.get('recipes_limit')
+            if recipes_limit and recipes_limit.isdigit():
+                limit = int(recipes_limit)
+                if limit > 0:
+                    recipes = recipes[:limit]
         return ShortRecipeSerializer(
             recipes,
             many=True,
@@ -175,7 +160,7 @@ class UserSubscribeSerializer(serializers.ModelSerializer):
 
     is_subscribed = serializers.BooleanField(default=True, read_only=True)
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(read_only=True, default=0)
     avatar = serializers.SerializerMethodField()
 
     class Meta:
@@ -195,33 +180,18 @@ class UserSubscribeSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        if not request:
-            recipes = obj.recipes.all()
-            return ShortRecipeSerializer(
-                recipes,
-                many=True,
-                context=self.context
-            ).data
-        recipes_limit = request.query_params.get('recipes_limit')
-        if recipes_limit is None:
-            recipes = obj.recipes.all()
-        else:
-            try:
+        recipes = obj.recipes.all()  
+        if request:
+            recipes_limit = request.query_params.get('recipes_limit')
+            if recipes_limit is not None and recipes_limit.isdigit():
                 limit = int(recipes_limit)
-                if limit <= 0:
-                    recipes = obj.recipes.all()
-                else:
-                    recipes = obj.recipes.all()[:limit]
-            except (ValueError, TypeError):
-                recipes = obj.recipes.all()
+                if limit > 0:
+                    recipes = recipes[:limit]
         return ShortRecipeSerializer(
             recipes,
             many=True,
             context=self.context
         ).data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
 
     def get_avatar(self, obj):
         if obj.avatar:

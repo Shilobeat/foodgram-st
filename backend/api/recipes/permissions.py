@@ -1,4 +1,3 @@
-
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
@@ -12,6 +11,6 @@ class RecipePermissions(BasePermission):
             request.method in SAFE_METHODS
             or (
                 request.user.is_authenticated
-                and (obj.author == request.user or request.user.is_staff)
+                and (obj.author == request.user or request.user.is_superuser)
             )
         )
