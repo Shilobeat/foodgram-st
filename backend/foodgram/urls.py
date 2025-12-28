@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -9,10 +8,7 @@ from api.recipes.views import short_link_redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('s/<int:code>', short_link_redirect, name='short-link'),
-    path('api/', include('api.users.urls')),
-    path('api/', include('djoser.urls')),
-    path('api/auth/', include('djoser.urls.authtoken')),
-    path('api/', include('api.recipes.urls')),
+    path('api/', include('api.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,9 +1,8 @@
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from .models import Subscription, User
+from users_app.models import Subscription, User
 
 
 @admin.register(User)
@@ -51,4 +50,4 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
 
-    list_display = ('subscriber',)
+    list_display = ('subscriber', 'author')

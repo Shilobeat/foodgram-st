@@ -1,10 +1,9 @@
-
 import re
 
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
-from .constants import MIN_VALUE_TIME
+from recipes_app.constants import MIN_VALUE_TIME
 
 
 def validate_time(value):
@@ -58,4 +57,3 @@ def validate_ingredients(value):
             'Некоторые ингредиенты не существуют в базе данных'
         )
     return value
-

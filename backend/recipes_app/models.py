@@ -1,16 +1,48 @@
-
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .basemodels import UserRecipeBaseModel
-from .constants import (
+from recipes_app.constants import (
     INGREDIENT_NAME_LENGTH,
     MIN_VALUE_AMOUNT_INGREDIENTS,
     RECIPE_NAME_LENGTH,
     UNIT_NAME_LENGTH
 )
-from .validators import validate_ingredient_name, validate_time
+from recipes_app.validators import validate_ingredient_name, validate_time
+
+
+class UserRecipeBaseModel(models.Model):
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        'Recipe',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Рецепт'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
+
+    class Meta:
+
+        abstract = True
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_%(class)s'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} - {self.recipe}'
 
 
 class Recipe(models.Model):
@@ -25,7 +57,7 @@ class Recipe(models.Model):
         'Ingredient',
         through='IngredientInRecipe',
         through_fields=('recipe', 'ingredient'),
-        verbose_name='Начните вводить название',
+        verbose_name='Ингредиенты',
         related_name='recipes'
     )
     name = models.CharField(
@@ -35,14 +67,12 @@ class Recipe(models.Model):
     image = models.ImageField(
         upload_to='recipes/',
         blank=True,
-        null=True,
         verbose_name='Изображение рецепта'
     )
     text = models.TextField(
         verbose_name='Описание'
     )
     cooking_time = models.PositiveSmallIntegerField(
-        default=None,
         validators=[validate_time],
         verbose_name='Время приготовления (в минутах)'
     )
@@ -65,10 +95,6 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
-
-    @property
-    def favorite_count(self):
-        return self.favorite.count()
 
     def get_absolute_url(self):
         from django.urls import reverse

@@ -1,9 +1,8 @@
-
 import re
 
 from django.core.exceptions import ValidationError
 
-from .constants import USERNAME_LENGTH
+from users_app.constants import USERNAME_LENGTH
 
 
 def validate_username(value):

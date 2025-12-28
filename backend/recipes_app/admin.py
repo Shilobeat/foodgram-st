@@ -1,9 +1,8 @@
-
 from django.contrib import admin
 
-from .constants import EXTRA_VALUE_ON_RECIPE, MIN_VALUE_ON_RECIPE
-from .forms import IngredientInRecipeForm
-from .models import (
+from recipes_app.constants import EXTRA_VALUE_ON_RECIPE, MIN_VALUE_ON_RECIPE
+from recipes_app.forms import IngredientInRecipeForm
+from recipes_app.models import (
     Favorite,
     Ingredient,
     IngredientInRecipe,

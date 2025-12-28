@@ -1,7 +1,49 @@
-Находясь в папке infra, выполните команду docker-compose up. При выполнении этой команды контейнер frontend, описанный в docker-compose.yml, подготовит файлы, необходимые для работы фронтенд-приложения, а затем прекратит свою работу.
+# Foodgram
 
-По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
+## Описание проекта
+Сервис для публикации рецептов. Пользователи могут создавать рецепты, добавлять их в избранное и формировать список покупок.
 
-Запуск из infra:
-docker compose up -d
+## Технологии
+- Python
+- Django
+- Django REST Framework  
+- PostgreSQL
+- Docker
+- Nginx
 
+## Локальный запуск
+
+### 1. Настройка окружения
+Создайте `.env` файл в корне проекта:
+
+```env
+SECRET_KEY=ваш_секретный_ключ
+DEBUG=True
+DOMAIN=web
+DOMAIN_IP=127.0.0.1
+
+DB_NAME=foodgram
+DB_USER=ваш_пользователь
+DB_PASSWORD=ваш_пароль
+DB_HOST=db
+DB_PORT=5432
+```
+
+### 2. Создание тестового пользователя
+```bash 
+docker-compose exec backend python manage.py createsuperuser
+```
+
+### 3. Запуск миграций
+```bash 
+docker-compose exec backend python manage.py migrate
+```
+
+### 4. Запуск приложения
+```bash 
+docker-compose up -d --build
+```
+
+### 5. Документация OpenAPI
+После запуска проекта документация доступна по адресу: http://127.0.0.1:8000/api/ \
+Админка: http://127.0.0.1:8000/admin/

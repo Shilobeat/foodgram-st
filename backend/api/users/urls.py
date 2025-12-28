@@ -1,24 +1,24 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-from django.urls import path
-
-from .views import SubscribeAPIView, SubscriptionsListView, UserAvatarAPIView
+from api.users.views import SubscriptionViewSet, SubscriptionsListView, UserViewSet
 
 app_name = 'users'
 
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+
 urlpatterns = [
+    path('', include(router.urls)),
+    
     path(
-        'users/<int:id>/subscribe/',
-        SubscribeAPIView.as_view(),
+        '<int:id>/subscribe/',
+        SubscriptionViewSet.as_view({'post': 'create', 'delete': 'destroy'}),
         name='subscribe'
     ),
     path(
-        'users/subscriptions/',
+        'subscriptions/',
         SubscriptionsListView.as_view(),
         name='subscriptions'
-    ),
-    path(
-        'users/me/avatar/',
-        UserAvatarAPIView.as_view(),
-        name='user-avatar'
     ),
 ]
