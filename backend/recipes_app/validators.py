@@ -13,7 +13,7 @@ def validate_time(value):
 
 
 def validate_ingredient_name(value):
-    ingredient_model = apps.get_model('recipes', 'Ingredient')
+    ingredient_model = apps.get_model('recipes_app', 'Ingredient')
     normalized_name = ' '.join(value.strip().lower().split())
 
     if ingredient_model.objects.filter(name__iexact=normalized_name).exists():
@@ -41,7 +41,7 @@ def _extract_ids(items):
 
 
 def validate_ingredients(value):
-    ingredient_model = apps.get_model('recipes', 'Ingredient')
+    ingredient_model = apps.get_model('recipes_app', 'Ingredient')
     if not value:
         raise ValidationError('Добавьте хотя бы один ингредиент')
 

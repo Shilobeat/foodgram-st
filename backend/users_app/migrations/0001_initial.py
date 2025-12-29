@@ -1,11 +1,9 @@
 from django.conf import settings
 import django.contrib.auth.models
-import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
 import django.db.models.expressions
 import django.utils.timezone
-
 import users_app.validators
 
 
@@ -28,11 +26,10 @@ class Migration(migrations.Migration):
                 ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
                 ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
-                ('email', models.EmailField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким email уже зарегистрирован'}, max_length=254, unique=True, validators=[django.core.validators.EmailValidator()], verbose_name='Адрес электронной почты')),
-                ('username', models.CharField(error_messages={'unique': 'Пользователь с таким именем уже существует'}, max_length=150, unique=True, validators=[users_app.validators.validate_username], verbose_name='Имя пользователя')),
-                ('first_name', models.CharField(max_length=150, verbose_name='Имя')),
-                ('last_name', models.CharField(max_length=150, verbose_name='Фамилия')),
-                ('is_subscribed', models.BooleanField(default=False, editable=False, verbose_name='Подписан ли текущий пользователь на этого')),
+                ('email', models.EmailField(error_messages={'unique': 'Пользователь с таким email уже зарегистрирован'}, max_length=100, unique=True, verbose_name='Адрес электронной почты')),
+                ('username', models.CharField(error_messages={'max_length': 'Имя пользователя не может быть длиннее 150 символов.', 'unique': 'Пользователь с таким username уже существует'}, max_length=100, unique=True, validators=[users_app.validators.validate_username], verbose_name='Имя пользователя')),
+                ('first_name', models.CharField(max_length=100, validators=[users_app.validators.validate_not_blank], verbose_name='Имя')),
+                ('last_name', models.CharField(max_length=100, validators=[users_app.validators.validate_not_blank], verbose_name='Фамилия')),
                 ('avatar', models.ImageField(blank=True, null=True, upload_to='users/avatars/', verbose_name='Аватар')),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.Group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.Permission', verbose_name='user permissions')),
@@ -65,9 +62,5 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='subscription',
             constraint=models.CheckConstraint(check=models.Q(('subscriber', django.db.models.expressions.F('author')), _negated=True), name='prevent_self_subscription'),
-        ),
-        migrations.AddConstraint(
-            model_name='user',
-            constraint=models.UniqueConstraint(fields=('email',), name='unique_email'),
         ),
     ]
