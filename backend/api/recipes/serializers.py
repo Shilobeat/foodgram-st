@@ -2,7 +2,6 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.fields import CreateOnlyDefault, CurrentUserDefault
 
-from api.recipes.shared_serializers import ShortRecipeSerializer
 from api.users.serializers import Base64ImageField, UserSerializer
 from recipes_app.constants import MIN_VALUE_AMOUNT_INGREDIENTS
 from recipes_app.models import (Favorite, Ingredient, IngredientInRecipe,
@@ -10,6 +9,14 @@ from recipes_app.models import (Favorite, Ingredient, IngredientInRecipe,
 from recipes_app.validators import validate_time
 
 
+class ShortRecipeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        
+        
 class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -139,53 +146,30 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return RecipeReadSerializer(instance, context=self.context).data
 
 
-class FavoriteSerializer(serializers.ModelSerializer):
+class AddRemoveRecipeSerializer(serializers.Serializer):
 
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-
-        model = Favorite
-        fields = ('user', 'recipe')
-
+    
     def validate(self, data):
         request = self.context.get('request')
+        model = self.context.get('model')
+        error_message = self.context.get('error_message')
         if request and request.user.is_authenticated:
-            if Favorite.objects.filter(
+            if model.objects.filter(
                 user=request.user,
                 recipe=data['recipe']
             ).exists():
                 raise serializers.ValidationError(
-                    {'recipe': 'Рецепт уже в избранном.'}
+                    {'recipe': error_message}
                 )
         return data
-
-    def to_representation(self, instance):
-        return ShortRecipeSerializer(instance.recipe).data
-
-
-class ShoppingCartSerializer(serializers.ModelSerializer):
-
-    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-
-        model = ShoppingCart
-        fields = ('user', 'recipe')
-
-    def validate(self, data):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            if ShoppingCart.objects.filter(
-                user=request.user,
-                recipe=data['recipe']
-            ).exists():
-                raise serializers.ValidationError(
-                    {'recipe': 'Рецепт уже в списке покупок.'}
-                )
-        return data
+        
+    def create(self, validated_data):
+        model = self.context.get('model')
+        if not model:
+            raise serializers.ValidationError('Модель не указана')
+        return model.objects.create(**validated_data)
 
     def to_representation(self, instance):
         return ShortRecipeSerializer(instance.recipe).data

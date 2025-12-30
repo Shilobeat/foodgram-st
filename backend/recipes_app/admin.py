@@ -31,7 +31,7 @@ class RecipesAdmin(admin.ModelAdmin):
     autocomplete_fields = ['author']
     
     def favorite_count(self, obj):
-        return obj.favorite_set.count()
+        return obj.favorite.count()
     favorite_count.short_description = 'В избранном'
 
     def display_ingredients(self, obj):

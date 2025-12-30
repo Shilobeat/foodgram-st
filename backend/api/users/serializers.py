@@ -4,13 +4,21 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from api.recipes.shared_serializers import ShortRecipeSerializer
+from recipes_app.models import Recipe
 from users_app.models import Subscription
 from users_app.validators import validate_username
 
 User = get_user_model()
 
 
+class ShortRecipeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+        
 class UserSerializer(serializers.ModelSerializer):
 
     is_subscribed = serializers.SerializerMethodField(read_only=True)
@@ -124,16 +132,19 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
 
         model = Subscription
-        fields = ('author',)
-        read_only_fields = ('subscriber',)
-
+        fields = ()
+ 
     def validate(self, data):
-        author = data['author']
         request = self.context.get('request')
+        author = self.context.get('author')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError(
+                'Требуется авторизация.'
+            )
         if request.user == author:
             raise serializers.ValidationError(
                 'Нельзя подписаться на самого себя.'
@@ -148,8 +159,12 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data['subscriber'] = self.context['request'].user
-        return super().create(validated_data)
+        request = self.context['request']
+        author = self.context['author']
+        return Subscription.objects.create(
+            subscriber=request.user,
+            author=author
+        )
         
     def to_representation(self, instance):
         return UserSubscribeSerializer(

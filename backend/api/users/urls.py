@@ -15,7 +15,7 @@ urlpatterns = router.urls + [
         name='subscribe'
     ),
     path(
-        'subscriptions/',
+        'users/subscriptions/',
         SubscriptionViewSet.as_view({'get': 'list'}),
         name='subscriptions'
     ),

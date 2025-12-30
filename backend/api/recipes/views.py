@@ -8,20 +8,28 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
 
 from api.recipes.filters import IngredientFilter, RecipeFilter
-from api.recipes.permissions import RecipePermissions
-from api.recipes.serializers import (FavoriteSerializer, IngredientSerializer,
-                                     RecipeCreateUpdateSerializer,
-                                     RecipeReadSerializer,
-                                     ShoppingCartSerializer)
-from api.recipes.shared_serializers import ShortRecipeSerializer
+from api.recipes.serializers import (AddRemoveRecipeSerializer, 
+                                    IngredientSerializer,
+                                    RecipeCreateUpdateSerializer,
+                                    RecipeReadSerializer,
+                                    ShortRecipeSerializer)
 from recipes_app.constants import MAX_PAGE_SIZE, PAGE_SIZE
 from recipes_app.models import (Favorite, Ingredient, IngredientInRecipe,
                                 Recipe, ShoppingCart)
 
 
+class RecipePermissions(BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        return obj.author == request.user or request.user.is_superuser
+        
+        
 class LimitPageNumberPagination(PageNumberPagination):
 
     page_size = PAGE_SIZE
@@ -92,32 +100,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         user = request.user
         if request.method == 'POST':
-            if model == Favorite:
-                serializer_class = FavoriteSerializer
-            else:
-                serializer_class = ShoppingCartSerializer
             serializer = serializer_class(
                 data={'recipe': recipe.id},
-                context={'request': request}
+                context={
+                    'request': request,
+                    'model': model,
+                    'error_message': exists_error
+                }
             )
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=user)
+            instance = serializer.save(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            deleted_count, _ = model.objects.filter(
-                user=user,
-                recipe=recipe
-            ).delete()
-            if deleted_count == 0:
-                return Response(
-                    {'errors': not_found_error},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(
-            {'errors': 'Метод не поддерживается'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+        if request.method != 'DELETE':
+            return Response(
+                {'errors': 'Метод не поддерживается'},
+                status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        deleted_count, _ = model.objects.filter(
+            user=user,
+            recipe=recipe
+        ).delete()
+        if deleted_count == 0:
+            return Response(
+                {'errors': not_found_error},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -128,7 +136,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         exists_error = 'Рецепт уже в избранном.'
         not_found_error = 'Рецепт не найден в избранном.'
         return self._handle_add_remove(
-            request, Favorite, FavoruteSerializer, exists_error, not_found_error, pk=pk
+            request, Favorite, AddRemoveRecipeSerializer, exists_error, not_found_error, pk=pk
         )
 
     @action(
@@ -140,7 +148,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         exists_error = 'Рецепт уже в списке покупок.'
         not_found_error = 'Рецепт не найден в списке покупок.'
         return self._handle_add_remove(
-            request, ShoppingCart, ShoppingCartSerializer, exists_error, not_found_error, pk=pk
+            request, ShoppingCart, AddRemoveRecipeSerializer, exists_error, not_found_error, pk=pk
         )
 
     def generate_shopping_list_file(self, user):
