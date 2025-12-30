@@ -2,12 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from users_app.constants import (
-    EMAIL_LENGTH,
-    FIRST_NAME_LENGTH,
-    LAST_NAME_LENGTH,
-    USERNAME_LENGTH
-)
+from users_app.constants import (EMAIL_LENGTH, FIRST_NAME_LENGTH,
+                                 LAST_NAME_LENGTH, USERNAME_LENGTH)
 from users_app.validators import validate_not_blank, validate_username
 
 
@@ -46,7 +42,6 @@ class User(AbstractUser):
     avatar = models.ImageField(
         upload_to='users/avatars/',
         blank=True,
-        null=True,
         verbose_name='Аватар'
     )
     USERNAME_FIELD = 'email'

@@ -2,12 +2,9 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from recipes_app.constants import (
-    INGREDIENT_NAME_LENGTH,
-    MIN_VALUE_AMOUNT_INGREDIENTS,
-    RECIPE_NAME_LENGTH,
-    UNIT_NAME_LENGTH
-)
+from recipes_app.constants import (INGREDIENT_NAME_LENGTH,
+                                   MIN_VALUE_AMOUNT_INGREDIENTS,
+                                   RECIPE_NAME_LENGTH, UNIT_NAME_LENGTH)
 from recipes_app.validators import validate_ingredient_name, validate_time
 
 

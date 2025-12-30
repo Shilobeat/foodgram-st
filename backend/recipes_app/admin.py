@@ -1,20 +1,13 @@
 from django.contrib import admin
 
 from recipes_app.constants import EXTRA_VALUE_ON_RECIPE, MIN_VALUE_ON_RECIPE
-from recipes_app.forms import IngredientInRecipeForm
-from recipes_app.models import (
-    Favorite,
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    ShoppingCart
-)
+from recipes_app.models import (Favorite, Ingredient, IngredientInRecipe,
+                                Recipe, ShoppingCart)
 
 
 class RecipeIngredientInline(admin.TabularInline):
 
     model = IngredientInRecipe
-    form = IngredientInRecipeForm
     extra = EXTRA_VALUE_ON_RECIPE
     min_num = MIN_VALUE_ON_RECIPE
     autocomplete_fields = ['ingredient']

@@ -1,7 +1,7 @@
 from django_filters import rest_framework as filters
 from rest_framework import filters as drf_filters
 
-from recipes_app.models import Recipe, Ingredient
+from recipes_app.models import Ingredient, Recipe
 from users_app.models import User
 
 

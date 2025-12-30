@@ -8,7 +8,6 @@ from users_app.models import Subscription, User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
 
-    model = User
     form = UserChangeForm
     add_form = UserCreationForm
 

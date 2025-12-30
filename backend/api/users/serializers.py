@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from api.recipes.shared_serializers import ShortRecipeSerializer
-
 from users_app.models import Subscription
 from users_app.validators import validate_username
 
@@ -67,9 +66,6 @@ class SetAvatarSerializer(serializers.ModelSerializer):
 
         model = User
         fields = ['avatar']
-
-    def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         if instance.avatar:
@@ -154,6 +150,12 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['subscriber'] = self.context['request'].user
         return super().create(validated_data)
+        
+    def to_representation(self, instance):
+        return UserSubscribeSerializer(
+            instance.author,
+            context=self.context
+        ).data
 
 
 class UserSubscribeSerializer(serializers.ModelSerializer):

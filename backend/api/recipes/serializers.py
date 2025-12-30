@@ -2,17 +2,11 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.fields import CreateOnlyDefault, CurrentUserDefault
 
-from api.users.serializers import Base64ImageField, UserSerializer
-
-from recipes_app.constants import MIN_VALUE_AMOUNT_INGREDIENTS
-from recipes_app.models import (
-    Favorite,
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    ShoppingCart,
-)
 from api.recipes.shared_serializers import ShortRecipeSerializer
+from api.users.serializers import Base64ImageField, UserSerializer
+from recipes_app.constants import MIN_VALUE_AMOUNT_INGREDIENTS
+from recipes_app.models import (Favorite, Ingredient, IngredientInRecipe,
+                                Recipe, ShoppingCart)
 from recipes_app.validators import validate_time
 
 

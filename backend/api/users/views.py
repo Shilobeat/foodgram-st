@@ -1,20 +1,24 @@
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions, status, viewsets, mixins
+from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from users_app.models import Subscription, User
-from api.users.pagination import LimitPageNumberPagination
-from api.users.serializers import (
-    SetAvatarSerializer,
-    SubscriptionSerializer,
-    UserSerializer,
-    UserSubscribeSerializer,
-    UserWithRecipesSerializer
-)
+from api.users.serializers import (SetAvatarSerializer, SubscriptionSerializer,
+                                   UserSerializer, UserSubscribeSerializer,
+                                   UserWithRecipesSerializer)
+from users_app.constants import MAX_PAGE_SIZE, PAGE_SIZE
+from users_app.models import Subscription, User                            
 
 
+class LimitPageNumberPagination(PageNumberPagination):
+
+    page_size = PAGE_SIZE
+    page_size_query_param = 'limit'
+    max_page_size = MAX_PAGE_SIZE
+    
+    
 class UserViewSet(viewsets.ModelViewSet):
 
     lookup_value_regex = r'\d+'
@@ -30,16 +34,17 @@ class UserViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
         
-    @action(detail=False, methods=['GET', 'PUT', 'PATCH'])
+    @action(detail=False, methods=['get'])
     def me(self, request):
-        if request.method == 'GET':
-            serializer = self.get_serializer(request.user)
-            return Response(serializer.data)
-        serializer = self.get_serializer(
-            request.user,
-            data=request.data,
-            partial=request.method == 'PATCH'
-        )
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+        
+    @me.mapping.put
+    @me.mapping.patch
+    def update_me(self, request):
+        partial = request.method == 'PATCH'
+        instance = request.user
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -51,86 +56,44 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = SetAvatarSerializer(
                 user,
                 data=request.data,
-                context={'request': request}
+                context=self.get_serializer_context()
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         elif request.method == 'DELETE':
-            if user.avatar:
-                user.avatar.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            else:
+            if not user.avatar:
                 return Response(
                     {'error': 'Аватар отсутствует'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscriptionViewSet(mixins.CreateModelMixin,
                          mixins.DestroyModelMixin,
+                         mixins.ListModelMixin,
                          viewsets.GenericViewSet):
 
     serializer_class = SubscriptionSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = LimitPageNumberPagination
     
-    def create(self, request, *args, **kwargs):
-        author_id = kwargs.get('id')
-        author = get_object_or_404(
-            User.objects.annotate(recipes_count=Count('recipes')).prefetch_related(
-            'recipes',
-            'subscriptions',
-            ),
-            id=author_id
-        )
-        if Subscription.objects.filter(
-            subscriber=request.user,
-            author=author
-        ).exists():
-            return Response(
-                {'detail': 'Вы уже подписаны на этого пользователя.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.user == author:
-            return Response(
-                {'detail': 'Нельзя подписаться на самого себя.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        serializer = self.get_serializer(data={'author': author.id})
-        serializer.is_valid(raise_exception=True)
-        serializer.save(subscriber=request.user)
-        user_serializer = UserSubscribeSerializer(
-            author,
-            context={'request': request}
-        )
-        return Response(user_serializer.data, status=status.HTTP_201_CREATED)
-    
+    def get_queryset(self):
+        return Subscription.objects.filter(subscriber=self.request.user)
+        
+    def perform_create(self, serializer):
+        author_id = self.kwargs.get('id')
+        author = get_object_or_404(User, id=author_id)
+        serializer.save(subscribe=self.request.user, author=author)
+        
     def destroy(self, request, *args, **kwargs):
-        author_id = kwargs.get('pk') or kwargs.get('id')
-        deleted_count, _ = Subscription.objects.filter(
+        author_id = kwargs.get('id')
+        subsciption = get_object_or_404(
+            Subsciption,
             subscriber=request.user,
             author_id=author_id
-        ).delete()
-        if deleted_count == 0:
-            return Response(
-                {'detail': 'Вы не подписаны на этого пользователя.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class SubscriptionsListView(generics.ListAPIView):
-
-    serializer_class = UserWithRecipesSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = LimitPageNumberPagination
-
-    def get_queryset(self):
-        return User.objects.filter(
-            subscribers__subscriber=self.request.user
-        ).annotate(recipes_count=Count('recipes')).prefetch_related(
-            'recipes',
-            'subscriptions',
         )
+        self.perform_destroy(subscription)
+        return Response(status=status.HTTP_204_NO_CONTENT)
